@@ -1,0 +1,13 @@
+{
+  "name": "Uber_demo",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "angular-google-maps": "^2.2.1",
+    "ejs": "*",
+    "express": "3.2.6"
+  }
+}
