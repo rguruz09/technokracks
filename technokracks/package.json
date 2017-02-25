@@ -7,7 +7,9 @@
   },
   "dependencies": {
     "angular-google-maps": "^2.2.1",
+    "btoa": "^1.1.2",
     "ejs": "*",
-    "express": "3.2.6"
+    "express": "3.2.6",
+    "request": "^2.79.0"
   }
 }

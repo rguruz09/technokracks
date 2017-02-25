@@ -58,7 +58,9 @@ SDNControllerApp.controller('MapCtrl', function ($rootScope,$scope, $http, $wind
 			$http({
 				method : 'get',
 				url : 'https://10.10.2.29:8443/NorthStar/API/v2/tenant/1/topology/1/nodes',
-				headers : {"Authorization": tokenService.get().typ+" "+tokenService.get().key},
+				headers : {'Authorization': 'Bearer vfhLJ9CNrppeyCE2aeHMQQOA0GUjoPcD8tsp+rvYCh0=',
+							'Content-Type' : 'application/x-www-form-urlencoded'
+						},
 				data : {
 					"username" : "group2",
 					"password" : "technokracks",
