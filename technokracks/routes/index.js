@@ -1,44 +1,17 @@
 
-/*
- * GET home page.
- */
 var http = require('http');
 var btoa = require('btoa');
 var request = require('request');
+var fs = require("fs");
+
 
 exports.index = function(req, res){
   res.render('index', { title: 'Express' });
 };
 
 
-exports.getToken1 = function(req, res){
 
-	console.log("getToken");
-	var auth = btoa(JSON.stringify("group2:technokracks"));
-	var options = {
-  		host: '10.10.2.29',
-  		port: 8443,
-  		path: '/oauth2/token',
-  		method: 'POST',
-  		headers: {
-    		'Content-Type': 'application/x-www-form-urlencoded',
-    		'Authorization': 'Basic ' + auth
-  		}
-	};
-
-	http.request(options, function(err, response){
-		if(err){
-			console.log("Error");
-		}else{
-			console.log(response);
-		}
-		res.render('index', { title: 'Express' });
-	});
-	
-  
-};
-
-exports.getToken = function(req, res){
+var getToken = function(callback){
 
 	request({
 		url: 'https://10.10.2.29:8443/oauth2/token',
@@ -55,32 +28,96 @@ exports.getToken = function(req, res){
 		}
 	}, function(err, response){
 		if(err){
-			console.log(err);
+			callback("error", null);
 		}else{
-			console.log(response.body);
-		}		res.send(response.body);
+			callback(null, response);
+		}		
 	});
   
 };
 
-
 exports.getTopology = function(req, res){
 	
-	var token = "vfhLJ9CNrppeyCE2aeHMQQOA0GUjoPcD8tsp+rvYCh0=";
-	
-	request({
-		url: 'https://10.10.2.29:8443/NorthStar/API/v2/tenant/1/topology/1',
-		rejectUnauthorized : false,
-		method: 'GET',
-		headers: {
-		    'Authorization': 'Bearer vfhLJ9CNrppeyCE2aeHMQQOA0GUjoPcD8tsp+rvYCh0=',
-		    'Content-Type' : 'application/x-www-form-urlencoded'
-		}
-	}, function(err, response){
-		if(err){
-			console.log(err);
+	getToken(function(err,result){
+		
+		if(result){
+
+			//var token = "vfhLJ9CNrppeyCE2aeHMQQOA0GUjoPcD8tsp+rvYCh0=";
+			var token = JSON.parse(result.body).access_token;
+			var type = JSON.parse(result.body).token_type;
+			
+			request({
+				url: 'https://10.10.2.29:8443/NorthStar/API/v2/tenant/1/topology/1',
+				rejectUnauthorized : false,
+				method: 'GET',
+				headers: {
+				    //'Authorization': 'Bearer vfhLJ9CNrppeyCE2aeHMQQOA0GUjoPcD8tsp+rvYCh0=',
+					'Authorization': type + " " + token,
+				    'Content-Type' : 'application/x-www-form-urlencoded'
+				}
+			}, function(err, response){
+				if(err){
+					console.log(err);
+				}else{
+					console.log(response.body);
+					
+					var routers = [];
+					var n = JSON.parse(response.body).nodes;
+					
+					for(var i=0; i<n.length; i++){
+						var nodes = {};
+						
+						nodes.id = n[i].id;
+						nodes.nodeIndex = n[i].nodeIndex;
+						nodes.nodeIndex = n[i].nodeIndex;
+						nodes.hostName = n[i].hostName;
+						
+						var coordinates = {
+								latitude : n[i].topology.coordinates.coordinates[0],
+								longitude : n[i].topology.coordinates.coordinates[1]
+						};
+						nodes.coordinate = coordinates;
+						routers.push(nodes);
+					}
+					
+					fs.writeFile( "./Data/routers.json", JSON.stringify( routers ), "utf8", function(){
+						
+						
+						var l = JSON.parse(response.body).links;
+						var linkarray = [];
+						
+						for(i=0;i<l.length;i++){
+							var links = {};
+							links.id = l[i].id;
+							links.operationalStatus = l[i].operationalStatus;
+							links.linkIndex = l[i].linkIndex;
+							links.interfaceA = l[i].endA.ipv4Address.address;
+							links.interfaceZ = l[i].endZ.ipv4Address.address;
+							links.nodeA = l[i].endA.node.id;
+							links.nodeZ = l[i].endZ.node.id;
+							linkarray.push(links);
+						}
+						
+						fs.writeFile( "./Data/links.json", JSON.stringify( routers ), "utf8", function(){
+							res.send({
+								status : 200,
+								nodes : routers,
+								links : linkarray
+							});
+							
+						});
+						
+					} );	
+				}		
+				
+			});
+			
+		
 		}else{
-			console.log(response.body);
-		}		res.send(response.body);
+			res.send({
+				status : 420
+			});
+		}
+		
 	});
-}
+};

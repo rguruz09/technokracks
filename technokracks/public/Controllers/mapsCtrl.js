@@ -18,65 +18,80 @@ SDNControllerApp.service('tokenService', function() {
 		get :  function(){
 			return token;
 		}
-	}
+	};
 });
 
 SDNControllerApp.controller('MapCtrl', function ($rootScope,$scope, $http, $window, tokenService) {
         console.log('Inside controller');
 
-		$window.map = new google.maps.Map(document.getElementById('map'), {
+        
+        var mapNodes = [];
+        
+		var map = new google.maps.Map(document.getElementById('map'), {
         	center: {
             	lat: 39.849312,
             	lng: -104.673828
         	},
         	zoom: 4
    		});
-
-   		//var auth = $base64.encode("foo:bar"), 
-   		var auth = btoa(JSON.stringify("group2:technokracks"));
-    	header = {"Authorization": "Basic " + auth};
-
-   		$http({
-			method : 'post',
-			url : 'https://10.10.2.29:8443/oauth2/token',
-			data : {
-				"username" : "group2",
-				"password" : "technokracks",
-				"grant_type" : "password"
-			},
-			headers : header
-		}).then(function successCallback(response) {
-			var t = {
-				key : response.data.access_token,
-				typ : response.data.token_type
-			}
-
-		    tokenService.set(t);
-		    console.log("type ", tokenService.get().typ);
-		    console.log("tokem ",tokenService.get().key);
-
-			$http({
-				method : 'get',
-				url : 'https://10.10.2.29:8443/NorthStar/API/v2/tenant/1/topology/1/nodes',
-				headers : {'Authorization': 'Bearer vfhLJ9CNrppeyCE2aeHMQQOA0GUjoPcD8tsp+rvYCh0=',
-							'Content-Type' : 'application/x-www-form-urlencoded'
-						},
-				data : {
-					"username" : "group2",
-					"password" : "technokracks",
-					"grant_type" : "password"
-				}
-				//headers : {"Authorization": "Bearer vfhLJ9CNrppeyCE2aeHMQQOA0GUjoPcD8tsp+rvYCh0="}
-			}).then(function successCallback(response) {
-					console.log(response.data.length);
-			}, function errorCallback(response) {
-		    		console.log("failure response");
-			});
-
-
-		}, function errorCallback(response) {
-		    console.log(response);
-		});
-
+		
+		$http({
+	  		method : 'get',
+	  		url : '/getTopology',
+	  	}).success(function(data) {
+	  		
+	  		if(data.status == 200){
+	  			
+		  		$scope.allNodes = data.nodes;
+		  		$scope.allLinks = data.links;
+		  		
+		  		for(var i=0; i<$scope.allNodes.length; i++){
+		  			var x = $scope.allNodes[i].coordinate.latitude;
+		  			var y = $scope.allNodes[i].coordinate.longitude;
+		  			
+		  			mapNodes[$scope.allNodes[i].id] = { lat : x, lan : y};
+		  			
+		  			var site = $scope.allNodes[i].hostName;
+		  			
+		  			var marker = new google.maps.Marker({
+					      position: new google.maps.LatLng(x,y),
+					      map: map,
+					      label: site,
+					      labelStyle: {opacity: 0},
+					      //icon:'../imgs/rt.png'
+					});
+		  			
+		  			google.maps.event.addListener(marker, 'click', (function(marker, i) {
+				         return function() {
+				            console.log("Yes here: " + marker.label);
+				         };
+				    })(marker, i));	  			
+		  		
+		  		}
+		  		
+		  		
+		  		for(var i=0; i<$scope.allLinks.length; i++){
+		  			
+		  			var nodeA = $scope.allLinks[i].nodeA;
+		  			var nodeB = $scope.allLinks[i].nodeZ;
+		  					
+					var line = new google.maps.Polyline({
+		  			    path: [
+		  			        new google.maps.LatLng(mapNodes[nodeA].lat, mapNodes[nodeA].lan), 
+		  			        new google.maps.LatLng(mapNodes[nodeB].lat, mapNodes[nodeB].lan)
+		  			    ],
+		  			    strokeColor: "#FF0000",
+		  			    strokeOpacity: 0.5,
+		  			    strokeWeight: 2,
+		  			    map: map
+		  			});
+		  		}
+	  			
+	  		}else{
+	  			 console.log("Something wrong");
+	  		}
+	  		
+	  	});
+		
 
  });
