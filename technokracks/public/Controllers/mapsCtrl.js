@@ -77,6 +77,7 @@ SDNControllerApp.controller('MapCtrl', function ($rootScope,$scope, $http, $wind
         var mapNodes = [];
         var mapLinks = [];
         var mapgraph = {};
+        var mapNodeToLink = [];
         
 		var map = new google.maps.Map(document.getElementById('map'), {
         	center: {
@@ -142,6 +143,9 @@ SDNControllerApp.controller('MapCtrl', function ($rootScope,$scope, $http, $wind
 		  			linksarr.nodeA =  nodeA;
 		  			linksarr.nodeZ =  nodeB;
 		  			
+		  			mapNodeToLink[nodeA+"_"+nodeB] = $scope.allLinks[i].interfaceZ;
+		  			mapNodeToLink[nodeB+"_"+nodeA] = $scope.allLinks[i].interfaceA;
+		  			
 		  			linksarr.distance = getDistance(mapNodes[nodeA].lat, mapNodes[nodeA].lan, mapNodes[nodeB].lat, mapNodes[nodeB].lan);
 		  					
 					var line = new google.maps.Polyline({
@@ -174,17 +178,31 @@ SDNControllerApp.controller('MapCtrl', function ($rootScope,$scope, $http, $wind
 		  		GraphService.set(mapgraph);
 		  		var p = getAllPath(mapgraph);
 		  		
-		  		linkrec = [];
+		  		var linkrec = [];
 		  		for(var j=0; j<p.length; j++){
 		  			var linkRes = {};
+		  			var linkarray = [];
 		  			linkRes.distance = 0;
 		  			for(var k=1; k<p[j].length; k++){
 		  				var dis = getDistance(mapNodes[p[j][k-1]].lat, mapNodes[p[j][k-1]].lan, mapNodes[p[j][k]].lat, mapNodes[p[j][k]].lan)
 		  				linkRes.distance = dis + linkRes.distance;
+		  				linkarray.push(mapNodeToLink[p[j][k-1]+"_"+p[j][k]]);
 		  			}
 		  			linkRes.path = p[j];
+		  			linkRes.links = linkarray;
 		  			linkrec.push(linkRes);
+		  			
 		  		}
+		  		
+		  		for(var v=0; v<linkrec.length; v++){
+					for(var s=i+1; s<linkrec.length; s++){
+						if(linkrec[v].distance>linkrec[s].distance){
+							var temp = linkrec[v];
+							linkrec[v] = linkrec[s];
+							linkrec[s] = temp;
+						}
+					}
+				}
 		  		
 		  		PathsService.set(linkrec);
 		  		console.log(PathsService.get());
