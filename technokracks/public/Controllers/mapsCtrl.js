@@ -9,7 +9,7 @@ SDNControllerApp.service('tokenService', function() {
 	var token = {
 		key : "",
 		typ : ""
-	}
+	};
 	return{
 		set : function(t){
 			token.key = t.key;
@@ -21,11 +21,62 @@ SDNControllerApp.service('tokenService', function() {
 	};
 });
 
-SDNControllerApp.controller('MapCtrl', function ($rootScope,$scope, $http, $window, tokenService) {
+SDNControllerApp.service('routerService', function() {	
+	var routers;
+	return{
+		set : function(t){
+			routers = t;
+		},
+		get :  function(){
+			return routers;
+		}
+	};
+});
+
+SDNControllerApp.service('LinkService', function() {	
+	var links;
+	return{
+		set : function(t){
+			links = t;
+		},
+		get :  function(){
+			return links;
+		}
+	};
+});
+
+SDNControllerApp.service('GraphService', function() {	
+	var graph;
+	return{
+		set : function(t){
+			graph = t;
+		},
+		get :  function(){
+			return graph;
+		}
+	};
+});
+
+SDNControllerApp.service('PathsService', function() {	
+	var path;
+	return{
+		set : function(t){
+			path = t;
+		},
+		get :  function(){
+			return path;
+		}
+	};
+});
+
+
+SDNControllerApp.controller('MapCtrl', function ($rootScope,$scope, $http, $window, tokenService, routerService, LinkService, GraphService, PathsService) {
         console.log('Inside controller');
 
         
         var mapNodes = [];
+        var mapLinks = [];
+        var mapgraph = {};
         
 		var map = new google.maps.Map(document.getElementById('map'), {
         	center: {
@@ -49,7 +100,7 @@ SDNControllerApp.controller('MapCtrl', function ($rootScope,$scope, $http, $wind
 		  			var x = $scope.allNodes[i].coordinate.latitude;
 		  			var y = $scope.allNodes[i].coordinate.longitude;
 		  			
-		  			mapNodes[$scope.allNodes[i].id] = { lat : x, lan : y};
+		  			mapNodes[$scope.allNodes[i].id] = { lat : x, lan : y, hostName : $scope.allNodes[i].hostName, nodeIndex : $scope.allNodes[i].nodeIndex};
 		  			
 		  			var site = $scope.allNodes[i].hostName;
 		  			
@@ -69,11 +120,29 @@ SDNControllerApp.controller('MapCtrl', function ($rootScope,$scope, $http, $wind
 		  		
 		  		}
 		  		
+		  		routerService.set(mapNodes);
+		  		
+		  		console.log("hello "+ routerService.get());
+		  		
+		  		
 		  		
 		  		for(var i=0; i<$scope.allLinks.length; i++){
 		  			
+		  			var linksarr = {};
+		  			
 		  			var nodeA = $scope.allLinks[i].nodeA;
 		  			var nodeB = $scope.allLinks[i].nodeZ;
+		  			
+		  			linksarr.id = $scope.allLinks[i].id;
+		  			linksarr.operationalStatus = $scope.allLinks[i].operationalStatus;
+		  			
+		  			linksarr.interfaceA =  $scope.allLinks[i].interfaceA;
+		  			linksarr.interfaceZ =  $scope.allLinks[i].interfaceZ;
+		  			
+		  			linksarr.nodeA =  nodeA;
+		  			linksarr.nodeZ =  nodeB;
+		  			
+		  			linksarr.distance = getDistance(mapNodes[nodeA].lat, mapNodes[nodeA].lan, mapNodes[nodeB].lat, mapNodes[nodeB].lan);
 		  					
 					var line = new google.maps.Polyline({
 		  			    path: [
@@ -85,13 +154,110 @@ SDNControllerApp.controller('MapCtrl', function ($rootScope,$scope, $http, $wind
 		  			    strokeWeight: 2,
 		  			    map: map
 		  			});
+					
+					mapLinks[$scope.allLinks[i].linkIndex] = linksarr;
+					
+					if(!( nodeA in mapgraph)){
+						mapgraph[nodeA] = new Array();
+					}
+					mapgraph[nodeA].push(nodeB);
+					
+					if(! (nodeB in mapgraph)){
+						mapgraph[nodeB] = new Array();
+					}
+					mapgraph[nodeB].push(nodeA);
+					
 		  		}
-	  			
+		  		console.log(mapgraph);
+		  		console.log(mapLinks);
+		  		LinkService.set(mapLinks);
+		  		GraphService.set(mapgraph);
+		  		var p = getAllPath(mapgraph);
+		  		
+		  		linkrec = [];
+		  		for(var j=0; j<p.length; j++){
+		  			var linkRes = {};
+		  			linkRes.distance = 0;
+		  			for(var k=1; k<p[j].length; k++){
+		  				var dis = getDistance(mapNodes[p[j][k-1]].lat, mapNodes[p[j][k-1]].lan, mapNodes[p[j][k]].lat, mapNodes[p[j][k]].lan)
+		  				linkRes.distance = dis + linkRes.distance;
+		  			}
+		  			linkRes.path = p[j];
+		  			linkrec.push(linkRes);
+		  		}
+		  		
+		  		PathsService.set(linkrec);
+		  		console.log(PathsService.get());
+		  		
+		  		
+		  		
 	  		}else{
 	  			 console.log("Something wrong");
 	  		}
 	  		
 	  	});
-		
-
  });
+
+var paths = [];
+
+//This function takes in latitude and longitude of two location and returns the distance between them as the crow flies (in km)
+function getDistance(lat1, lon1, lat2, lon2) 
+{
+  var R = 6371; // km
+  var dLat = toRad(lat2-lat1);
+  var dLon = toRad(lon2-lon1);
+  var lat1 = toRad(lat1);
+  var lat2 = toRad(lat2);
+
+  var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.sin(dLon/2) * Math.sin(dLon/2) * Math.cos(lat1) * Math.cos(lat2); 
+  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+  var d = R * c;
+  return d;
+}
+
+// Converts numeric degrees to radians
+function toRad(Value) 
+{
+    return Value * Math.PI / 180;
+}
+
+
+function getAllPath(graph){
+	
+	var visited = [];
+	var path = [];
+	//var paths = [];
+	
+	for(var node in graph){
+		visited[node] = false;
+	}
+	
+	getAllPathUtils("10.210.10.100", "10.210.10.118", visited, path, graph);
+	
+	return (paths);
+	
+}
+
+function getAllPathUtils(u, d, visited, path,  graph){
+	
+	visited[u] = true;
+	path.push(u);
+	
+	if(u === d){
+//		var newarr = new Array();
+//		newarr.push(path);
+		paths.push(path.slice());
+//		console.log(path);
+	}else{
+		for(var i = 0; i< graph[u].length; i++){
+			if(visited[graph[u][i]] == false){
+				getAllPathUtils(graph[u][i], d, visited, path,  graph)
+			}
+		}
+	}
+	path.pop();
+	visited[u] = false;
+	
+	//return paths;
+}

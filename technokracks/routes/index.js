@@ -36,13 +36,13 @@ var getToken = function(callback){
   
 };
 
-exports.getTopology = function(req, res){
+
+var getTolo = function(callback){
 	
 	getToken(function(err,result){
 		
 		if(result){
-
-			//var token = "vfhLJ9CNrppeyCE2aeHMQQOA0GUjoPcD8tsp+rvYCh0=";
+			
 			var token = JSON.parse(result.body).access_token;
 			var type = JSON.parse(result.body).token_type;
 			
@@ -51,15 +51,14 @@ exports.getTopology = function(req, res){
 				rejectUnauthorized : false,
 				method: 'GET',
 				headers: {
-				    //'Authorization': 'Bearer vfhLJ9CNrppeyCE2aeHMQQOA0GUjoPcD8tsp+rvYCh0=',
 					'Authorization': type + " " + token,
 				    'Content-Type' : 'application/x-www-form-urlencoded'
 				}
 			}, function(err, response){
 				if(err){
 					console.log(err);
+					callback("error",null);
 				}else{
-					console.log(response.body);
 					
 					var routers = [];
 					var n = JSON.parse(response.body).nodes;
@@ -99,25 +98,41 @@ exports.getTopology = function(req, res){
 						}
 						
 						fs.writeFile( "./Data/links.json", JSON.stringify( routers ), "utf8", function(){
-							res.send({
-								status : 200,
-								nodes : routers,
-								links : linkarray
-							});
+							var resu = {};
+							resu.status = 200;
+							resu.nodes = routers;
+							resu.links = linkarray;
+							
+							callback(null,resu);
 							
 						});
-						
 					} );	
 				}		
 				
 			});
 			
-		
 		}else{
+			callbacl("error", null);
+		}
+	});
+
+}
+
+exports.getTopology = function(req, res){
+	
+	getTolo(function(err,result){
+		if(result){
+			res.send(result);
+		} else{
 			res.send({
 				status : 420
 			});
 		}
-		
 	});
+	
 };
+
+
+
+
+

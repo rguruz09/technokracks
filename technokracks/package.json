@@ -8,6 +8,7 @@
   "dependencies": {
     "angular-google-maps": "^2.2.1",
     "btoa": "^1.1.2",
+    "client-sessions": "^0.7.0",
     "ejs": "*",
     "express": "3.2.6",
     "request": "^2.79.0"

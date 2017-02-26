@@ -5,11 +5,14 @@
 
 var express = require('express')
   , routes = require('./routes')
+  , paths = require('./routes/paths')
   , user = require('./routes/user')
   , http = require('http')
   , path = require('path');
 
 var app = express();
+
+var session = require('client-sessions');
 
 // all environments
 app.set('port', process.env.PORT || 3000);
@@ -28,6 +31,12 @@ app.use(function(req, res, next) {
     next();
 });
 
+app.use(session({
+  cookieName: 'session',
+  secret: 'random_string_goes_here',
+  duration: 30 * 60 * 1000,
+  activeDuration: 5 * 60 * 1000,
+}));
 
 // development only
 if ('development' == app.get('env')) {
@@ -36,9 +45,10 @@ if ('development' == app.get('env')) {
 
 app.get('/', routes.index);
 app.get('/users', user.list);
-//app.get('/getToken', routes.getToken);
 app.get('/getTopology', routes.getTopology);
 
+app.get('/getAllPaths', paths.getAllPaths); 
+app.get('/getRouterMap', paths.getRouterMap); 
 http.createServer(app).listen(app.get('port'), function(){
   console.log('Express server listening on port ' + app.get('port'));
 });
