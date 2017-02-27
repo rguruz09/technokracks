@@ -36,7 +36,6 @@ var getToken = function(callback){
   
 };
 
-
 var getTolo = function(callback){
 	
 	getToken(function(err,result){
@@ -112,11 +111,11 @@ var getTolo = function(callback){
 			});
 			
 		}else{
-			callbacl("error", null);
+			callback("error", null);
 		}
 	});
 
-}
+};
 
 exports.getTopology = function(req, res){
 	
@@ -132,7 +131,233 @@ exports.getTopology = function(req, res){
 	
 };
 
+var getLSP = function(callback){
+	
+	getToken(function(err,result){
+		
+		if(result){
+			
+			var token = JSON.parse(result.body).access_token;
+			var type = JSON.parse(result.body).token_type;
+			
+			request({
+				url: 'https://10.10.2.29:8443/NorthStar/API/v2/tenant/1/topology/1/te-lsps/search?name=GROUP_TWO',
+				rejectUnauthorized : false,
+				method: 'GET',
+				headers: {
+					'Authorization': type + " " + token,
+				    'Content-Type' : 'application/x-www-form-urlencoded'
+				}
+			}, function(err, response){
+				if(err){
+					console.log(err);
+					callback("error",null);
+				}else{
+					
+					var LSPArray = [];
+					var n = JSON.parse(response.body);
+					
+					for(var i=0; i<n.length; i++){
+						var lsp = {};
+						
+						lsp.name = n[i].name;
+						lsp.from = n[i].from.address;
+						lsp.to = n[i].to.address;
+						lsp.lspIndex = n[i].lspIndex;
+						
+						var ero = [];
+						
+						for(var j=0; j<n[i].liveProperties.ero.length; j++){
+							ero.push(n[i].liveProperties.ero[j].address);
+						}
+						lsp.ero = ero;
+						lsp.operationalStatus = n[i].operationalStatus;
+						
+						LSPArray.push(lsp);
+					}
+					
+					callback(null, LSPArray);
+				}		
+				
+			});
+			
+		}else{
+			callback("error", null);
+		}
+	});
+
+}
 
 
+
+var constructLSPReq = function(req, callback){
+	
+	
+getToken(function(err,result){
+		
+		if(result){
+			
+			var token = JSON.parse(result.body).access_token;
+			var type = JSON.parse(result.body).token_type;
+			
+			request({
+				url: 'https://10.10.2.29:8443/NorthStar/API/v2/tenant/1/topology/1/te-lsps/search?name=GROUP_TWO',
+				rejectUnauthorized : false,
+				method: 'GET',
+				headers: {
+					'Authorization': type + " " + token,
+				    'Content-Type' : 'application/x-www-form-urlencoded'
+				}
+			}, function(err, response){
+				if(err){
+					console.log(err);
+					callback("error",null);
+				}else{
+					
+					var LSPArray = [];
+					var n = JSON.parse(response.body);
+					
+					for(var i=0; i<n.length; i++){
+						var lsp = {};
+						
+						lsp.name = n[i].name;
+						lsp.from = n[i].from.address;
+						lsp.to = n[i].to.address;
+						lsp.lspIndex = n[i].lspIndex;
+						
+						var ero = [];
+						
+						for(var j=0; j<n[i].liveProperties.ero.length; j++){
+							ero.push(n[i].liveProperties.ero[j].address);
+						}
+						lsp.ero = ero;
+						lsp.operationalStatus = n[i].operationalStatus;
+						
+						LSPArray.push(lsp);
+					}
+					
+					callback(null, LSPArray);
+				}		
+				
+			});
+			
+		}else{
+			callback("error", null);
+		}
+	});
+	
+	
+	
+	
+	
+}
+
+exports.getMyLSPs = function(req, res){
+	
+	getLSP(function(err,result){
+		if(result){
+			res.send({
+				status : 200,
+				data : result
+			});
+		} else{
+			res.send({
+				status : 420
+			});
+		}
+	});
+};
+
+
+var setLSP = function(req, callback){
+	
+	getToken(function(err,result){
+		
+		if(result){
+			
+			var ero = req.param("ero").split(',').map(function (val) {
+				  return Number(val) + 1;
+			});
+			
+			var from = req.param("from");
+			var to = req.param("to");
+			var lspIndex = req.param("lspIndex");
+			var name = req.param("name");
+			var body = {};
+			
+			var frm = {};
+			frm.topoObjectType = "ipv4";
+			frm.address = from;
+			body.from = frm;
+			
+			var toadd = {};
+			toadd.topoObjectType = "ipv4";
+			toadd.address = to;
+			body.to = toadd;
+			
+			body.lspIndex = lspIndex;
+			body.name = name;
+			body.pathType = "primary";
+			
+			var eros = [];
+			for(var i=0; i<ero.length; i++){
+				var each_ero = {};
+				each_ero.topoObjectType = "ipv4";
+				each_ero.address = ero[i];
+				eros.push(each_ero);
+			}
+			var plannedProperties = {};
+			plannedProperties.ero = eros;
+			body.plannedProperties = plannedProperties ; 
+			
+			var token = JSON.parse(result.body).access_token;
+			var type = JSON.parse(result.body).token_type;
+		
+			request({
+				url: 'https://10.10.2.29:8443/NorthStar/API/v2/tenant/1/topology/1/te-lsps/'+lspIndex,
+				rejectUnauthorized : false,
+				method: 'POST',
+				headers: {
+					'Authorization': type + " " + token,
+				    'Content-Type' : 'application/json'
+				},
+				data : body
+			}, function(err, response){
+				if(err){
+					console.log(err);
+					callback("error",null);
+				}else{
+					
+					callback(null, response);
+				}		
+				
+			});
+			
+		}else{
+			callback("error", null);
+		}
+	});
+
+};
+
+
+
+
+exports.updateLSP = function(req, res){
+	
+	console.log("inside update LSP");
+	setLSP(req, function(err,result){
+		if(result){
+			res.send({
+				status : 200,
+				data : result
+			});
+		} else{
+			res.send({
+				status : 420
+			});
+		}
+	});
+}
 
 
