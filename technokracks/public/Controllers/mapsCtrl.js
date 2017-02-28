@@ -184,8 +184,8 @@ SDNControllerApp.controller('MapCtrl', function ($rootScope,$scope, $http, $wind
     		  			linksarr.nodeA =  nodeA;
     		  			linksarr.nodeZ =  nodeB;
     		  			
-    		  			mapNodeToLink[nodeA+"_"+nodeB] = $scope.allLinks[i].interfaceA;
-    		  			mapNodeToLink[nodeB+"_"+nodeA] = $scope.allLinks[i].interfaceZ;
+    		  			mapNodeToLink[nodeA+"_"+nodeB] = $scope.allLinks[i].interfaceZ;
+    		  			mapNodeToLink[nodeB+"_"+nodeA] = $scope.allLinks[i].interfaceA;
     		  			
     		  			linksarr.distance = getDistance(mapNodes[nodeA].lat, mapNodes[nodeA].lan, mapNodes[nodeB].lat, mapNodes[nodeB].lan);
     		  					
@@ -284,11 +284,17 @@ SDNControllerApp.controller('MapCtrl', function ($rootScope,$scope, $http, $wind
     	    		  						var nodeA = mapNodes[mapLinks[k].nodeA];
     	    		  						var nodeB = mapNodes[mapLinks[k].nodeZ];
     	    		  						
-    	    		  						var color;
-    	    		  						if($scope.allLSP[i].lspIndex >= 41 && $scope.allLSP[i].lspIndex <= 44)
-    	    		  							color = "#0000FF";
-    	    		  						else
-    	    		  							color = "#228B22";
+    	    		  						var color = {};
+    	    		  						if($scope.allLSP[i].lspIndex >= 41 && $scope.allLSP[i].lspIndex <= 44){
+    	    		  							color.color = "#e2cd81";
+    	    		  							color.strokeWeight = 12;
+    	    		  							color.strokeOpacity = 1;
+    	    		  						}
+    	    		  						else{
+    	    		  							color.color = "#228B22";
+    	    		  							color.strokeWeight = 2;
+    	    		  							color.strokeOpacity = 0.2;
+    	    		  						}
     	    		  						drawLine(nodeA.lat,nodeA.lan,nodeB.lat,nodeB.lan,color,map);
     	    		  					}
     	    		  				}
@@ -298,7 +304,7 @@ SDNControllerApp.controller('MapCtrl', function ($rootScope,$scope, $http, $wind
     	    		  		
     	    		  		console.log(PathsService.get());
             	    		
-    	    		  		var reIndex = 0;
+    	    		  		/*var reIndex = 0;
             	    		for(var i=0; i<len; i++){
             	    			reIndex = i%4;
             	    			var c = {};
@@ -351,7 +357,46 @@ SDNControllerApp.controller('MapCtrl', function ($rootScope,$scope, $http, $wind
             	    			//lsps_all[i].
         	    				}
         	    				console.log(mapNodeToLinkServices.get());
+            	    		}*/
+    	    		  		
+    	    		  		
+            	    		for(var i=0; i<len; i++){
+            	    			
+            	    			var er;
+            	    			  
+            	    			for(var x=4; x<PathsService.get().length; x++){
+            	    				var found = true;
+            	    				if(lsps_all[i].lspIndex >=	85 && lsps_all[i].lspIndex <= 88){
+            	    					for(var y=0; y<PathsService.get()[x].links.length; y++){
+            	    						if(lsps_all[i].eroP.indexOf(PathsService.get()[x].links[y]) >= 0){
+            	    							found = false;
+            	    							break;
+            	    						}            	    						
+                	    				}
+            	    					if(found)
+            	    						er= PathsService.get()[x].links.slice();
+                	    			}            	    				
+                	    			else{
+                	    				
+                	    				for(var y=0; y<PathsService.get()[x].links2.length; y++){
+            	    						if(lsps_all[i].eroP.indexOf(PathsService.get()[x].links2[y]) >= 0){
+            	    							found = false;
+            	    							break;
+            	    						}            	    						
+                	    				}
+            	    					if(found)
+            	    						er= PathsService.get()[x].links2.slice().reverse();
+                	    			}   
+            	    			}
+            	    			         	    				
+            	    			
+        	    				lsps_all[i].eroS = er;
+        	    				
+        	    				console.log(mapNodeToLinkServices.get());
             	    		}
+    	    		  		
+    	    		  		
+    	    		  		
     	    	  		}else{
     	    	  			 console.log("Something wrong");
     	    	  		}
