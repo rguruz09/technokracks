@@ -275,9 +275,7 @@ var setLSP = function(req, callback){
 		
 		if(result){
 			
-			var ero = req.param("ero").split(',').map(function (val) {
-				  return Number(val) + 1;
-			});
+			var ero = req.param("ero").split(',');
 			
 			var from = req.param("from");
 			var to = req.param("to");
@@ -295,7 +293,7 @@ var setLSP = function(req, callback){
 			toadd.address = to;
 			body.to = toadd;
 			
-			body.lspIndex = lspIndex;
+			body.lspIndex = parseInt(lspIndex);
 			body.name = name;
 			body.pathType = "primary";
 			
@@ -312,16 +310,17 @@ var setLSP = function(req, callback){
 			
 			var token = JSON.parse(result.body).access_token;
 			var type = JSON.parse(result.body).token_type;
-		
+			
+			//callback(null, body);
 			request({
 				url: 'https://10.10.2.29:8443/NorthStar/API/v2/tenant/1/topology/1/te-lsps/'+lspIndex,
 				rejectUnauthorized : false,
-				method: 'POST',
+				method: 'PUT',
 				headers: {
 					'Authorization': type + " " + token,
 				    'Content-Type' : 'application/json'
 				},
-				data : body
+				json : body
 			}, function(err, response){
 				if(err){
 					console.log(err);
@@ -347,6 +346,7 @@ exports.updateLSP = function(req, res){
 	
 	console.log("inside update LSP");
 	setLSP(req, function(err,result){
+		//res.send(result);
 		if(result){
 			res.send({
 				status : 200,

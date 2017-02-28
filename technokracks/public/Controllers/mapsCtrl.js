@@ -298,7 +298,9 @@ SDNControllerApp.controller('MapCtrl', function ($rootScope,$scope, $http, $wind
     	    		  		
     	    		  		console.log(PathsService.get());
             	    		
+    	    		  		var reIndex = 0;
             	    		for(var i=0; i<len; i++){
+            	    			reIndex = i%4;
             	    			var c = {};
             	    			if(i<4){           	    				
             	    				c.color = "#228B22";
@@ -310,7 +312,13 @@ SDNControllerApp.controller('MapCtrl', function ($rootScope,$scope, $http, $wind
             	    				c.strokeWeight = 12;
             	    				c.strokeOpacity = 1;
             	    			}
-            	    			var er = PathsService.get()[i].links.reverse().slice();
+            	    			var er;
+            	    			
+            	    			if(lsps_all[i].lspIndex >=	41 && lsps_all[i].lspIndex <= 44)
+            	    				er= PathsService.get()[reIndex].links.reverse().slice();
+            	    			else
+            	    				er= PathsService.get()[reIndex].links2.slice();
+            	    			
         	    				lsps_all[i].eroP = er;
         	    				var nA;
         	    				var nZ;
@@ -322,7 +330,24 @@ SDNControllerApp.controller('MapCtrl', function ($rootScope,$scope, $http, $wind
             	    						break;
             	    					}                	    						
             	    				}
-        	    					drawLine(nA.lat,nA.lan,nZ.lat,nZ.lan,c,map);		
+        	    					
+        	    					
+        	    					
+        	    					$http({
+        	        	    	  		method : 'post',
+        	        	    	  		url : '/updateLSP',
+        	        	    	  		data : {							
+        									"lspIndex" : lsps_all[i].lspIndex,
+        									"to" : lsps_all[i].to,
+        									"from" : lsps_all[i].from,
+        									"ero" : lsps_all[i].eroP.toString(),
+        									"name" : lsps_all[i].name
+        								}
+        	        	    	  	}).success(function(data) {
+        	        	    	  		drawLine(nA.lat,nA.lan,nZ.lat,nZ.lan,c,map);
+        	        	    	  	});
+        	    							
+        	    					
             	    			//lsps_all[i].
         	    				}
         	    				console.log(mapNodeToLinkServices.get());
