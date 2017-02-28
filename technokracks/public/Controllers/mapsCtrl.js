@@ -107,8 +107,22 @@ SDNControllerApp.service('mapNodeToLinkServices', function() {
 	};
 });
 
-SDNControllerApp.controller('MapCtrl', function ($rootScope,$scope, $http, $window, tokenService, routerService, LinkService, mapNodeToLinkServices, GraphService, PathsService) {
+SDNControllerApp.service('polyLineServices', function() {	
+	var poly;
+	return{
+		set : function(t){
+			poly = t;
+		},
+		get :  function(){
+			return poly;
+		}
+	};
+});
+
+SDNControllerApp.controller('MapCtrl', function ($rootScope,$scope, $http, $window, tokenService, routerService, LinkService, mapNodeToLinkServices, GraphService, PathsService, polyLineServices) {
         console.log('Inside controller');
+        
+        
         
         var mapNodes = [];
         var mapLinks = [];
@@ -117,7 +131,7 @@ SDNControllerApp.controller('MapCtrl', function ($rootScope,$scope, $http, $wind
         var lsps_all = [];
         
         var map;
-	
+	 
         $scope.getTopology = function(){
         	console.log('Inside getTopology');
         	map = new google.maps.Map(document.getElementById('map'), {
@@ -254,159 +268,6 @@ SDNControllerApp.controller('MapCtrl', function ($rootScope,$scope, $http, $wind
     		  		console.log(PathsService.get());
     		  		
     		  		
-
-    	        	var len;
-    	        	
-    	    		$http({
-    	    	  		method : 'get',
-    	    	  		url : '/getMyLSPs',
-    	    	  	}).success(function(data) {
-    	    	  		
-    	    	  		if(data.status == 200){
-    	    	  			
-    	    		  		$scope.allLSP = data.data;
-    	    		  		len = $scope.allLSP.length;
-    	    		  		for(var i=0; i<$scope.allLSP.length; i++){
-    	    		  			var each_lsp ={};
-    	    		  			each_lsp.name = $scope.allLSP[i].name;
-    	    		  			each_lsp.from = $scope.allLSP[i].from;
-    	    		  			each_lsp.to = $scope.allLSP[i].to;
-    	    		  			each_lsp.lspIndex = $scope.allLSP[i].lspIndex;
-    	    		  			each_lsp.eroP = $scope.allLSP[i].ero.slice();
-    	    		  			each_lsp.eroS = $scope.allLSP[i].ero.slice();
-    	    		  			each_lsp.eroB = $scope.allLSP[i].ero.slice();
-    	    		  			
-    	    		  			for(var j=0; j<$scope.allLSP[i].ero.length; j++){
-    	    		  				var interfaceip = $scope.allLSP[i].ero[j];
-    	    		  				
-    	    		  				for(var k=1; k<mapLinks.length; k++){
-    	    		  					if(mapLinks[k ].interfaceA == interfaceip || mapLinks[k].interfaceZ == interfaceip ){
-    	    		  						var nodeA = mapNodes[mapLinks[k].nodeA];
-    	    		  						var nodeB = mapNodes[mapLinks[k].nodeZ];
-    	    		  						
-    	    		  						var color = {};
-    	    		  						if($scope.allLSP[i].lspIndex >= 41 && $scope.allLSP[i].lspIndex <= 44){
-    	    		  							color.color = "#e2cd81";
-    	    		  							color.strokeWeight = 12;
-    	    		  							color.strokeOpacity = 1;
-    	    		  						}
-    	    		  						else{
-    	    		  							color.color = "#228B22";
-    	    		  							color.strokeWeight = 2;
-    	    		  							color.strokeOpacity = 0.2;
-    	    		  						}
-    	    		  						drawLine(nodeA.lat,nodeA.lan,nodeB.lat,nodeB.lan,color,map);
-    	    		  					}
-    	    		  				}
-    	    		  			}
-    	    		  			lsps_all.push(each_lsp);
-    	    		  		}
-    	    		  		
-    	    		  		console.log(PathsService.get());
-            	    		
-    	    		  		/*var reIndex = 0;
-            	    		for(var i=0; i<len; i++){
-            	    			reIndex = i%4;
-            	    			var c = {};
-            	    			if(i<4){           	    				
-            	    				c.color = "#228B22";
-            	    				c.strokeWeight = 2;
-            	    				c.strokeOpacity = 0.2;
-            	    			}
-            	    			else{
-            	    				c.color = "#e2cd81";
-            	    				c.strokeWeight = 12;
-            	    				c.strokeOpacity = 1;
-            	    			}
-            	    			var er;
-            	    			
-            	    			if(lsps_all[i].lspIndex >=	41 && lsps_all[i].lspIndex <= 44)
-            	    				er= PathsService.get()[reIndex].links.reverse().slice();
-            	    			else
-            	    				er= PathsService.get()[reIndex].links2.slice();
-            	    			
-        	    				lsps_all[i].eroP = er;
-        	    				var nA;
-        	    				var nZ;
-        	    				for( var q=0; q<er.length; q++){
-        	    					for(var p=1; p<mapLinks.length; p++){
-            	    					if(mapLinks[p].interfaceZ == er[q] || mapLinks[p].interfaceA == er[q]){
-            	    						nA = mapNodes[mapLinks[p].nodeA];
-            	    						nZ = mapNodes[mapLinks[p].nodeZ];
-            	    						break;
-            	    					}                	    						
-            	    				}
-        	    					
-        	    					
-        	    					
-        	    					$http({
-        	        	    	  		method : 'post',
-        	        	    	  		url : '/updateLSP',
-        	        	    	  		data : {							
-        									"lspIndex" : lsps_all[i].lspIndex,
-        									"to" : lsps_all[i].to,
-        									"from" : lsps_all[i].from,
-        									"ero" : lsps_all[i].eroP.toString(),
-        									"name" : lsps_all[i].name
-        								}
-        	        	    	  	}).success(function(data) {
-        	        	    	  		drawLine(nA.lat,nA.lan,nZ.lat,nZ.lan,c,map);
-        	        	    	  	});
-        	    							
-        	    					
-            	    			//lsps_all[i].
-        	    				}
-        	    				console.log(mapNodeToLinkServices.get());
-            	    		}*/
-    	    		  		
-    	    		  		
-            	    		for(var i=0; i<len; i++){
-            	    			
-            	    			var er;
-            	    			  
-            	    			for(var x=4; x<PathsService.get().length; x++){
-            	    				var found = true;
-            	    				if(lsps_all[i].lspIndex >=	85 && lsps_all[i].lspIndex <= 88){
-            	    					for(var y=0; y<PathsService.get()[x].links.length; y++){
-            	    						if(lsps_all[i].eroP.indexOf(PathsService.get()[x].links[y]) >= 0){
-            	    							found = false;
-            	    							break;
-            	    						}            	    						
-                	    				}
-            	    					if(found)
-            	    						er= PathsService.get()[x].links.slice();
-                	    			}            	    				
-                	    			else{
-                	    				
-                	    				for(var y=0; y<PathsService.get()[x].links2.length; y++){
-            	    						if(lsps_all[i].eroP.indexOf(PathsService.get()[x].links2[y]) >= 0){
-            	    							found = false;
-            	    							break;
-            	    						}            	    						
-                	    				}
-            	    					if(found)
-            	    						er= PathsService.get()[x].links2.slice().reverse();
-                	    			}   
-            	    			}
-            	    			         	    				
-            	    			
-        	    				lsps_all[i].eroS = er;
-        	    				
-        	    				console.log(mapNodeToLinkServices.get());
-            	    		}
-    	    		  		
-    	    		  		
-    	    		  		
-    	    	  		}else{
-    	    	  			 console.log("Something wrong");
-    	    	  		}
-    	    	  		
-    	    	  	});
-    	        
-    	        	
-    	    		
-    		  		
-    		  		
     	  		}else{
     	  			 console.log("Something wrong");
     	  		}
@@ -415,9 +276,321 @@ SDNControllerApp.controller('MapCtrl', function ($rootScope,$scope, $http, $wind
         }
         
         
-        //update the LSPs path
-        $scope.getLSPLinks = function(){
+        $scope.loadLSP = function(){
         	
+        	console.log("inside load LSP");
+        	var len;
+        	
+    		$http({
+    	  		method : 'get',
+    	  		url : '/getMyLSPs',
+    	  	}).success(function(data) {
+    	  		
+    	  		if(data.status == 200){
+    	  			
+    		  		$scope.allLSP = data.data;
+    		  		len = $scope.allLSP.length;
+    		  		
+    		  		var lines = [];
+    		  		polyLineServices.set(lines);
+    		  		
+    		  		for(var i=0; i<$scope.allLSP.length; i++){
+    		  			var each_lsp ={};
+    		  			each_lsp.name = $scope.allLSP[i].name;
+    		  			each_lsp.from = $scope.allLSP[i].from;
+    		  			each_lsp.to = $scope.allLSP[i].to;
+    		  			each_lsp.lspIndex = $scope.allLSP[i].lspIndex;
+    		  			each_lsp.eroP = $scope.allLSP[i].ero.slice();
+    		  			each_lsp.eroS = $scope.allLSP[i].ero.slice();
+    		  			each_lsp.eroB = $scope.allLSP[i].ero.slice();
+    		  			
+    		  			
+    		  			myPath = [];
+    		  			for(var j=0; j<$scope.allLSP[i].ero.length; j++){
+    		  				var interfaceip = $scope.allLSP[i].ero[j];
+    		  				
+    		  				
+    		  				for(var k=1; k<mapLinks.length; k++){
+    		  					if(mapLinks[k ].interfaceA == interfaceip || mapLinks[k].interfaceZ == interfaceip ){
+    		  						var nodeA;
+    		  						var nodeB;
+    		  						if(mapLinks[k ].interfaceA == interfaceip ){
+    		  							nodeA = mapNodes[mapLinks[k].nodeZ];
+        		  						nodeB = mapNodes[mapLinks[k].nodeA];
+    		  						}else{
+    		  							nodeA = mapNodes[mapLinks[k].nodeA];
+        		  						nodeB = mapNodes[mapLinks[k].nodeZ];
+    		  						}
+    		  						
+    		  						
+    		  						var color = {};
+    		  						if($scope.allLSP[i].lspIndex >= 41 && $scope.allLSP[i].lspIndex <= 44){
+    		  							color.color = "#e2cd81";
+    		  							color.strokeWeight = 12;
+    		  							color.strokeOpacity = 1;
+    		  						}
+    		  						else{
+    		  							color.color = "#228B22";
+    		  							color.strokeWeight = 2;
+    		  							color.strokeOpacity = 0.2;
+    		  						}
+    		  						var pt = {};
+    		  						pt.lat = nodeA.lat;
+    		  						pt.lng = nodeA.lan;
+    		  						
+    		  						var dup = true;
+    		  						for(var xx=0; xx<myPath.length; xx++){
+    		  							if(myPath[xx].lat == pt.lat && myPath[xx].lng == pt.lng){
+    		  								dup = false;
+    		  								break;
+    		  							}
+    		  						}
+    		  						if(dup)
+    		  							myPath.push(jQuery.extend(true, {}, pt));
+    		  						
+    		  						var pt1 = {};
+    		  						pt1.lat = nodeB.lat;
+    		  						pt1.lng = nodeB.lan;
+    		  						
+    		  						dup = true;
+    		  						for(var xx=0; xx<myPath.length; xx++){
+    		  							if(myPath[xx].lat == pt1.lat && myPath[xx].lng == pt1.lng){
+    		  								dup = false;
+    		  								break;
+    		  							}
+    		  						}
+    		  						if(dup)
+    		  							myPath.push(jQuery.extend(true, {}, pt1));
+    		  						
+    		  						break;
+    		  						//drawLine(nodeA.lat,nodeA.lan,nodeB.lat,nodeB.lan,color,map);
+    		  					}
+    		  				}
+    		  			}
+    		  			var line = drawLine(myPath,color,map);
+    		  			lines = polyLineServices.get();
+    		  			lines.push(line);
+    		  			polyLineServices.set(lines);
+    		  			
+    		  			lsps_all.push(each_lsp);
+    		  		}
+    		  		
+    		  		console.log(PathsService.get());
+    		  		
+    	  		}else{
+    	  			 console.log("Something wrong");
+    	  		}
+    	  		
+    	  	});
+        	
+        	
+        
+        	
+        }
+        
+        //update the LSPs path
+        $scope.updateLSPLinks = function(){
+        	
+        	
+        	var lines = polyLineServices.get();
+        	
+        	for(var o=0; o<lines.length; o++){
+        		lines[o].setMap(null);
+        	}
+        	
+        	
+        	var len = lsps_all.length;
+        	var reIndex = 0;
+    		for(var i=0; i<len; i++){
+    			reIndex = i%4;
+    			var c = {};
+    			
+    			var er;
+    			
+    			if(lsps_all[i].lspIndex >=	85 && lsps_all[i].lspIndex <= 88){
+    				er= PathsService.get()[reIndex].links.slice();
+    				c.color = "#228B22";
+    				c.strokeWeight = 2;
+    				c.strokeOpacity = 0.2;
+    			}
+    				
+    			else{
+    				er= PathsService.get()[reIndex].links2.slice().reverse();
+    				c.color = "#e2cd81";
+    				c.strokeWeight = 12;
+    				c.strokeOpacity = 1;
+    			}
+    				
+    			
+				lsps_all[i].eroP = er;
+				var nA;
+				var nZ;
+				myPath = [];
+				
+				for( var q=0; q<er.length; q++){
+					for(var p=1; p<mapLinks.length; p++){
+    					if(mapLinks[p].interfaceZ == er[q] || mapLinks[p].interfaceA == er[q]){
+    				
+	  						if(mapLinks[p].interfaceZ == er[q]  ){
+	  							nA = mapNodes[mapLinks[p].nodeA];
+		  						nZ = mapNodes[mapLinks[p].nodeZ];
+	  						}else{
+	  							nA = mapNodes[mapLinks[p].nodeZ];
+		  						nZ = mapNodes[mapLinks[p].nodeA];
+	  						}
+	  						
+	  						
+	  						var dup = true;
+	  						
+    						var pt = {};
+	  						pt.lat = nA.lat;
+	  						pt.lng = nA.lan;
+	  						myPath.push(jQuery.extend(true, {}, pt));
+	  						
+	  						for(var xx=0; xx<myPath.length; xx++){
+	  							if(myPath[xx].lat == pt.lat && myPath[xx].lng == pt.lng){
+	  								dup = false;
+	  								break;
+	  							}
+	  						}
+	  						if(dup)
+	  							myPath.push(jQuery.extend(true, {}, pt));
+	  						
+	  						dup = true;
+	  						var pt1 = {};
+	  						pt1.lat = nZ.lat;
+	  						pt1.lng = nZ.lan;
+	  						myPath.push(jQuery.extend(true, {}, pt1));
+    						
+	  						for(var xx=0; xx<myPath.length; xx++){
+	  							if(myPath[xx].lat == pt1.lat && myPath[xx].lng == pt1.lng){
+	  								dup = false;
+	  								break;
+	  							}
+	  						}
+	  						if(dup)
+	  							myPath.push(jQuery.extend(true, {}, pt1));
+    						break;
+    					}      
+    					
+    				}
+				}
+				
+				
+				$http({
+	    	  		method : 'post',
+	    	  		url : '/updateLSP',
+	    	  		data : {							
+						"lspIndex" : lsps_all[i].lspIndex,
+						"to" : lsps_all[i].to,
+						"from" : lsps_all[i].from,
+						"ero" : lsps_all[i].eroP.toString(),
+						"name" : lsps_all[i].name
+					}
+	    	  	}).success(function(data) {
+	    	  		
+	    	  	});
+				drawLine(myPath,c,map);
+				
+				console.log(mapNodeToLinkServices.get());
+    		}
+        	
+        	
+        	
+        	/*
+        	
+    		$http({
+    	  		method : 'get',
+    	  		url : '/getMyLSPs',
+    	  	}).success(function(data) {
+    	  		
+    	  		if(data.status == 200){
+    	  			
+    		  		$scope.allLSP = data.data;
+    		  		len = $scope.allLSP.length;
+    		  		for(var i=0; i<$scope.allLSP.length; i++){
+    		  			var each_lsp ={};
+    		  			each_lsp.name = $scope.allLSP[i].name;
+    		  			each_lsp.from = $scope.allLSP[i].from;
+    		  			each_lsp.to = $scope.allLSP[i].to;
+    		  			each_lsp.lspIndex = $scope.allLSP[i].lspIndex;
+    		  			each_lsp.eroP = $scope.allLSP[i].ero.slice();
+    		  			each_lsp.eroS = $scope.allLSP[i].ero.slice();
+    		  			each_lsp.eroB = $scope.allLSP[i].ero.slice();
+    		  			
+    		  			for(var j=0; j<$scope.allLSP[i].ero.length; j++){
+    		  				var interfaceip = $scope.allLSP[i].ero[j];
+    		  				
+    		  				for(var k=1; k<mapLinks.length; k++){
+    		  					if(mapLinks[k ].interfaceA == interfaceip || mapLinks[k].interfaceZ == interfaceip ){
+    		  						var nodeA = mapNodes[mapLinks[k].nodeA];
+    		  						var nodeB = mapNodes[mapLinks[k].nodeZ];
+    		  						
+    		  						var color = {};
+    		  						if($scope.allLSP[i].lspIndex >= 41 && $scope.allLSP[i].lspIndex <= 44){
+    		  							color.color = "#e2cd81";
+    		  							color.strokeWeight = 12;
+    		  							color.strokeOpacity = 1;
+    		  						}
+    		  						else{
+    		  							color.color = "#228B22";
+    		  							color.strokeWeight = 2;
+    		  							color.strokeOpacity = 0.2;
+    		  						}
+    		  						drawLine(nodeA.lat,nodeA.lan,nodeB.lat,nodeB.lan,color,map);
+    		  					}
+    		  				}
+    		  			}
+    		  			lsps_all.push(each_lsp);
+    		  		}
+    		  		
+    		  		console.log(PathsService.get());
+    	    		
+    		  		
+    		  		
+    		  		
+    	    		for(var i=0; i<len; i++){
+    	    			
+    	    			var er;
+    	    			  
+    	    			for(var x=4; x<PathsService.get().length; x++){
+    	    				var found = true;
+    	    				if(lsps_all[i].lspIndex >=	85 && lsps_all[i].lspIndex <= 88){
+    	    					for(var y=0; y<PathsService.get()[x].links.length; y++){
+    	    						if(lsps_all[i].eroP.indexOf(PathsService.get()[x].links[y]) >= 0){
+    	    							found = false;
+    	    							break;
+    	    						}            	    						
+        	    				}
+    	    					if(found)
+    	    						er= PathsService.get()[x].links.slice();
+        	    			}            	    				
+        	    			else{
+        	    				
+        	    				for(var y=0; y<PathsService.get()[x].links2.length; y++){
+    	    						if(lsps_all[i].eroP.indexOf(PathsService.get()[x].links2[y]) >= 0){
+    	    							found = false;
+    	    							break;
+    	    						}            	    						
+        	    				}
+    	    					if(found)
+    	    						er= PathsService.get()[x].links2.slice().reverse();
+        	    			}   
+    	    			}
+    	    			         	    				
+    	    			
+	    				lsps_all[i].eroS = er;
+	    				
+	    				console.log(mapNodeToLinkServices.get());
+    	    		}
+    		  		
+    		  		
+    		  		
+    	  		}else{
+    	  			 console.log("Something wrong");
+    	  		}
+    	  		
+    	  	});*/
         	
         	
         };
@@ -427,18 +600,17 @@ SDNControllerApp.controller('MapCtrl', function ($rootScope,$scope, $http, $wind
         
  });
 
-function drawLine(lat1, lan1, lat2, lan2, c, map)
-{
+function drawLine(mypath, c, map){
+	
 	var line = new google.maps.Polyline({
-		    path: [
-		        new google.maps.LatLng(lat1, lan1), 
-		        new google.maps.LatLng(lat2, lan2)
-		    ],
+		    path: mypath,
 		    strokeColor: c.color,
 		    strokeOpacity: c.strokeOpacity,
 		    strokeWeight: c.strokeWeight,
 		    map: map
 		});
+	
+	return line;
 };
 
 

@@ -20,6 +20,7 @@
     <style>
       html, body {
         height: 100%;
+        width: 80%;
         margin: 0;
         padding: 0;
       }
@@ -30,7 +31,11 @@
   </head>
   
   <body ng-controller ="MapCtrl" ng-init="getTopology()">
-    <div id="map" ></div>        
- 
+    <div id="map" ></div>       
+    <div id ="buttons">
+    	<button type="button" ng-click="loadLSP()">Load LSPs</button>
+    	<button type="button" ng-click="updateLSPLinks()">Set Best LSPs</button>
+    </div>  
+    
   </body>
 </html>
