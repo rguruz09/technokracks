@@ -132,55 +132,23 @@ SDNControllerApp.service('failedServices', function() {
 	};
 });
 
+SDNControllerApp.service('flines', function() {	
+	var links;
+	return{
+		set : function(t){
+			links = t;
+		},
+		get :  function(){
+			return links;
+		}
+	};
+});
+
 
 SDNControllerApp.controller('MapCtrl', function ($rootScope,$interval,$scope, $http, $window, 
 		failedServices, tokenService, routerService, LinkService, mapNodeToLinkServices, 
-		GraphService, PathsService, polyLineServices, LSPLinksServices) {
+		GraphService, PathsService, polyLineServices, LSPLinksServices, flines) {
         console.log('Inside controller');
-        
-        
-        var updateExample = function(){
-        	console.log("getFailedLinks");
-//        	make API Call here
-    		$http({
-    	  		method : 'get',
-    	  		url : '/getFailedLinks',
-    	  	}).success(function(data) {
-    	  		if(data.status == 200){
-    	  			var d = data.data;
-    	  			if(d){
-    	  				var result = {};
-        	  			result.status = d.status;
-        	  			result.interface_address = d.interface_address; 
-        	  			failedServices.set(result);
-    	  			}else{
-    	  				failedServices.set({});
-    	  			}
-    	  		}else{
-    	  			failedServices.set({});
-    	  		}
-
-                if(failedServices.get()){
-                    console.log("not empty");
-                    updateLSPAfter();
-                }
-
-    	  	});
-        };
-        
-        
-        var updateLSPAfter = function(){
-        	
-        	var failed = failedServices.get();
-        	//var lsp = 
-        	
-        }
-        
-        $scope.useInterval = function() {
-        	$interval(updateExample, 10000);
-        }
-        
-        
         
         
         var mapNodes = [];
@@ -190,6 +158,206 @@ SDNControllerApp.controller('MapCtrl', function ($rootScope,$interval,$scope, $h
         var lsps_all = [];
         
         var map;
+        
+        var healMe = function(){
+        	var lines = flines.get();
+        	for(var o in lines){
+        		//stopCircle(lines[o]);
+        		var ll = lines[o];
+        		ll.setMap(null);
+        		ll.setVisible(false);
+        		ll=null;
+        		flines.set([]);
+        	}
+        };
+        
+        var updateLSPAfter = function(){
+        	
+        	var failed = failedServices.get();
+        	var lsps = LSPLinksServices.get();
+        	var lines = polyLineServices.get();
+        	var curEro;
+        	var c ={};
+        	var nA;
+			var nZ;
+			
+			
+        	for(var i=0; i<lsps.length; i++){
+        		
+        		var typ = lsps[i].cur;
+        		
+        		if(typ == "P"){
+        			curEro =  lsps[i].eroP;
+        		}else{
+        			curEro =  lsps[i].eroS;
+        		}
+        		
+        		for(var j=0; j<curEro.length; j++){
+        			if(failed.interface_address.includes(curEro[j].substring(0,10))){
+
+        				var er; 
+        				if(typ == "P"){
+        					er = lsps[i].eroS;
+        					lsps[i].cur = "S";        					
+        				}else{
+        					er = lsps[i].eroP;
+        					lsps[i].cur = "P";
+        				}
+        				        				
+        				var l=lines[lsps[i].name];
+        				stopCircle(l);
+        				l.setMap(null);
+        				
+        				var id = lsps[i].lspIndex;
+        				        				
+        				if(id >= 85 && id <= 88){
+            				c.color = "#228B22";
+            				c.strokeWeight = 5;
+            				c.strokeOpacity = 0.2;
+            			}
+            			else{
+            				c.color = "#e2cd81";
+            				c.strokeWeight = 12;
+            				c.strokeOpacity = 0.8;
+            			}
+            			
+        				var myPath1 = [];
+        				for( var q=0; q<er.length; q++){
+        					for(var p=1; p<mapLinks.length; p++){
+            					if(mapLinks[p].interfaceZ == er[q] || mapLinks[p].interfaceA == er[q]){
+            				
+        	  						if(mapLinks[p].interfaceZ == er[q]  ){
+        	  							nA = mapNodes[mapLinks[p].nodeA];
+        		  						nZ = mapNodes[mapLinks[p].nodeZ];
+        	  						}else{
+        	  							nA = mapNodes[mapLinks[p].nodeZ];
+        		  						nZ = mapNodes[mapLinks[p].nodeA];
+        	  						}
+        	  						
+        	  						var dup = true;
+        	  						
+            						var pt = {};
+        	  						pt.lat = nA.lat;
+        	  						pt.lng = nA.lan;
+        	  						myPath1.push(jQuery.extend(true, {}, pt));
+        	  						
+        	  						for(var xx=0; xx<myPath1.length; xx++){
+        	  							if(myPath1[xx].lat == pt.lat && myPath1[xx].lng == pt.lng){
+        	  								dup = false;
+        	  								break;
+        	  							}
+        	  						}
+        	  						if(dup)
+        	  							myPath1.push(jQuery.extend(true, {}, pt));
+        	  						
+        	  						dup = true;
+        	  						var pt1 = {};
+        	  						pt1.lat = nZ.lat;
+        	  						pt1.lng = nZ.lan;
+        	  						myPath1.push(jQuery.extend(true, {}, pt1));
+            						
+        	  						for(var xx=0; xx<myPath1.length; xx++){
+        	  							if(myPath[xx].lat == pt1.lat && myPath[xx].lng == pt1.lng){
+        	  								dup = false;
+        	  								break;
+        	  							}
+        	  						}
+        	  						if(dup)
+        	  							myPath1.push(jQuery.extend(true, {}, pt1));
+            						break;
+            					}      
+            					
+            				}
+        				}
+        				
+        				var ln = drawLine(myPath1,c,map);
+              			//lines.push(line);
+              			lines[lsps[i].name] = ln;
+              			polyLineServices.set(lines);
+              			
+        				$http({
+        	    	  		method : 'post',
+        	    	  		url : '/updateLSP',
+        	    	  		data : {							
+        						"lspIndex" : lsps_all[i].lspIndex,
+        						"to" : lsps_all[i].to,
+        						"from" : lsps_all[i].from,
+        						"ero" : er.toString(),
+        						"name" : lsps_all[i].name
+        					}
+        	    	  	}).success(function(data) {
+        	    	  		
+        	    	  	});
+        				
+        			}
+        		}
+        	}
+        	
+        	for(var p=1; p<mapLinks.length; p++){
+        		var myPath2 = [];
+				if(mapLinks[p].interfaceZ == failed.interface_address || mapLinks[p].interfaceA == failed.interface_address){
+						
+					if(mapLinks[p].interfaceZ == failed.interface_address  ){
+						nA = mapNodes[mapLinks[p].nodeA];
+						nZ = mapNodes[mapLinks[p].nodeZ];
+					}else{
+						nA = mapNodes[mapLinks[p].nodeZ];
+						nZ = mapNodes[mapLinks[p].nodeA];
+					}
+						
+					var pt = {};
+					pt.lat = nA.lat;
+					pt.lng = nA.lan;
+					myPath2.push(jQuery.extend(true, {}, pt));
+					
+					var pt1 = {};
+					pt1.lat = nZ.lat;
+					pt1.lng = nZ.lan;
+					myPath2.push(jQuery.extend(true, {}, pt1));
+					
+	        		c.color = "#0000FF";
+					c.strokeWeight = 16;
+					c.strokeOpacity = 0.8;
+				
+	        		var ln = drawLine1(myPath2,c,map);
+	        		lns = [];
+	        		lns.push(ln);
+	        		flines.set(lns);
+					
+				}      
+				
+			}
+        	
+        }
+        
+        var updateExample = function(){
+        	console.log("getFailedLinks");
+//        	make API Call here
+    		$http({
+    	  		method : 'get',
+    	  		url : '/getFailedLinks',
+    	  	}).success(function(data) {
+    	  		if(data.status == 200){
+    	  			
+    	  			var d = data.data;
+    	  			var result = {};
+    	  			result.status = d.status;
+    	  			result.interface_address = d.interface_address; 
+    	  			
+    	  			if(result.status == "failed"){
+    	  				failedServices.set(result);
+    	  				updateLSPAfter();
+    	  			}else{
+    	  				healMe();
+    	  			}
+    	  			
+    	  			
+    	  		}
+    	  	});
+        };
+        
+               
+     
 	 
         $scope.getTopology = function(){
         	console.log('Inside getTopology');
@@ -428,7 +596,8 @@ SDNControllerApp.controller('MapCtrl', function ($rootScope,$interval,$scope, $h
     		  			}
     		  			var line = drawLine(myPath,color,map);
     		  			lines = polyLineServices.get();
-    		  			lines.push(line);
+    		  			//lines.push(line);
+    		  			lines[$scope.allLSP[i].name] = line;
     		  			polyLineServices.set(lines);
     		  			
     		  			lsps_all.push(each_lsp);
@@ -452,9 +621,16 @@ SDNControllerApp.controller('MapCtrl', function ($rootScope,$interval,$scope, $h
         	
         	var lines = polyLineServices.get();
         	
-        	for(var o=0; o<lines.length; o++){
+//        	for(var o=0; o<lines.length; o++){
+//        		lines[o].setMap(null);
+//        	}
+        	
+        	
+        	for(var o in lines){
         		lines[o].setMap(null);
         	}
+        	
+        	polyLineServices.set([]);
         	
         	var len = lsps_all.length;
         	var reIndex = 0;
@@ -547,8 +723,12 @@ SDNControllerApp.controller('MapCtrl', function ($rootScope,$interval,$scope, $h
 	    	  	}).success(function(data) {
 	    	  		
 	    	  	});
-				drawLine(myPath,c,map);
 				
+				saPath = polyLineServices.get();
+				
+				var l = drawLine(myPath,c,map);
+				saPath[lsps_all[i].name] = l;
+				polyLineServices.set(saPath);
 				console.log(mapNodeToLinkServices.get());
     		}
     		
@@ -582,7 +762,7 @@ SDNControllerApp.controller('MapCtrl', function ($rootScope,$interval,$scope, $h
     			         	    				
     			
 				lsps_all[i].eroS = er;
-				
+				lsps_all[i].cur = "P";
 				console.log(mapNodeToLinkServices.get());
     		}
     		
@@ -719,15 +899,50 @@ function drawLine(mypath, c, map){
 	return line;
 };
 
+
+function drawLine1(mypath, c, map){
+	
+	var lineSymbol = {
+	          path: 'M 0,-1 0,1',
+	          strokeOpacity: 1,
+	          scale: 4
+	        };
+	
+	var line = new google.maps.Polyline({
+	    path: mypath,
+	    icons: [{
+            icon: lineSymbol,
+            offset: '0',
+            repeat: '20px'
+          }],
+	    strokeColor: "ea0b29",
+	    strokeOpacity: 0,
+	    strokeWeight: 10,
+	    map: map
+	});
+	return line;
+}
+
+
 function animateCircle(line) {
     var count = 0;
     window.setInterval(function() {
       count = (count + 1) % 200;
 
       var icons = line.get('icons');
-      icons[0].offset = (count / 2) + '%';
-      line.set('icons', icons);
+      if(icons){
+    	  icons[0].offset = (count / 2) + '%';
+          line.set('icons', icons);
+      }
   }, 20);
+}
+
+function stopCircle(line) {
+    
+    window.clearInterval(line.offsetId);
+    line.setOptions({
+    	icons:null
+    });
 }
 
 

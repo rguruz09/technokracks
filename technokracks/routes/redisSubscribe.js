@@ -24,6 +24,12 @@ client.on("message", function (channel, message) {
         });
     }else{
     	console.log("healed :"+message);
+    	fs.writeFile( "../Data/failedLinks.json", message, "utf8", function(err){
+        	if(err){
+        		console.log(err);
+        	}
+        	console.log("FAIL :"+message);
+        });
     }
     
     
