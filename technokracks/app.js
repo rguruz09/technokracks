@@ -48,7 +48,7 @@ app.get('/users', user.list);
 app.get('/getTopology', routes.getTopology);
 app.get('/getMyLSPs', routes.getMyLSPs);
 app.post('/updateLSP', routes.updateLSP);
-
+app.get('/getFailedLinks', routes.getFailedLinks);
 
 app.get('/getAllPaths', paths.getAllPaths); 
 app.get('/getRouterMap', paths.getRouterMap); 

@@ -4,12 +4,23 @@ var btoa = require('btoa');
 var request = require('request');
 var fs = require("fs");
 
+exports.getFailedLinks = function(req, res){
+	
+	var dt = fs.readFileSync("./Data/failedLinks.json");
+//	var js = {};
+//	js.status = JSON.parse(dt).status;
+	
+	res.send({
+		status : 200,
+		data : JSON.parse(dt)
+	});
+	
+};
+
 
 exports.index = function(req, res){
   res.render('index', { title: 'Express' });
 };
-
-
 
 var getToken = function(callback){
 
@@ -189,11 +200,10 @@ var getLSP = function(callback){
 }
 
 
-
 var constructLSPReq = function(req, callback){
 	
 	
-getToken(function(err,result){
+	getToken(function(err,result){
 		
 		if(result){
 			
@@ -245,11 +255,7 @@ getToken(function(err,result){
 			callback("error", null);
 		}
 	});
-	
-	
-	
-	
-	
+
 }
 
 exports.getMyLSPs = function(req, res){
@@ -267,7 +273,6 @@ exports.getMyLSPs = function(req, res){
 		}
 	});
 };
-
 
 var setLSP = function(req, callback){
 	
@@ -338,9 +343,6 @@ var setLSP = function(req, callback){
 	});
 
 };
-
-
-
 
 exports.updateLSP = function(req, res){
 	

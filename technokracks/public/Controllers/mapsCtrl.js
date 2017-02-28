@@ -119,8 +119,67 @@ SDNControllerApp.service('polyLineServices', function() {
 	};
 });
 
-SDNControllerApp.controller('MapCtrl', function ($rootScope,$scope, $http, $window, tokenService, routerService, LinkService, mapNodeToLinkServices, GraphService, PathsService, polyLineServices) {
+
+SDNControllerApp.service('failedServices', function() {	
+	var links;
+	return{
+		set : function(t){
+			links = t;
+		},
+		get :  function(){
+			return links;
+		}
+	};
+});
+
+
+SDNControllerApp.controller('MapCtrl', function ($rootScope,$interval,$scope, $http, $window, 
+		failedServices, tokenService, routerService, LinkService, mapNodeToLinkServices, 
+		GraphService, PathsService, polyLineServices, LSPLinksServices) {
         console.log('Inside controller');
+        
+        
+        var updateExample = function(){
+        	console.log("getFailedLinks");
+//        	make API Call here
+    		$http({
+    	  		method : 'get',
+    	  		url : '/getFailedLinks',
+    	  	}).success(function(data) {
+    	  		if(data.status == 200){
+    	  			var d = data.data;
+    	  			if(d){
+    	  				var result = {};
+        	  			result.status = d.status;
+        	  			result.interface_address = d.interface_address; 
+        	  			failedServices.set(result);
+    	  			}else{
+    	  				failedServices.set({});
+    	  			}
+    	  		}else{
+    	  			failedServices.set({});
+    	  		}
+
+                if(failedServices.get()){
+                    console.log("not empty");
+                    updateLSPAfter();
+                }
+
+    	  	});
+        };
+        
+        
+        var updateLSPAfter = function(){
+        	
+        	var failed = failedServices.get();
+        	//var lsp = 
+        	
+        }
+        
+        $scope.useInterval = function() {
+        	$interval(updateExample, 10000);
+        }
+        
         
         
         
@@ -331,7 +390,7 @@ SDNControllerApp.controller('MapCtrl', function ($rootScope,$scope, $http, $wind
     		  						}
     		  						else{
     		  							color.color = "#228B22";
-    		  							color.strokeWeight = 2;
+    		  							color.strokeWeight = 5;
     		  							color.strokeOpacity = 0.2;
     		  						}
     		  						var pt = {};
@@ -391,13 +450,11 @@ SDNControllerApp.controller('MapCtrl', function ($rootScope,$scope, $http, $wind
         //update the LSPs path
         $scope.updateLSPLinks = function(){
         	
-        	
         	var lines = polyLineServices.get();
         	
         	for(var o=0; o<lines.length; o++){
         		lines[o].setMap(null);
         	}
-        	
         	
         	var len = lsps_all.length;
         	var reIndex = 0;
@@ -494,8 +551,46 @@ SDNControllerApp.controller('MapCtrl', function ($rootScope,$scope, $http, $wind
 				
 				console.log(mapNodeToLinkServices.get());
     		}
-        	
-        	
+    		
+    		
+    		for(var i=0; i<len; i++){
+    			
+    			for(var x=4; x<PathsService.get().length; x++){
+    				var found = true;
+    				if(lsps_all[i].lspIndex >=	85 && lsps_all[i].lspIndex <= 88){
+    					for(var y=0; y<PathsService.get()[x].links.length; y++){
+    						if(lsps_all[i].eroP.indexOf(PathsService.get()[x].links[y]) >= 0){
+    							found = false;
+    							break;
+    						}            	    						
+	    				}
+    					if(found)
+    						er= PathsService.get()[x].links.slice();
+	    			}            	    				
+	    			else{
+	    				
+	    				for(var y=0; y<PathsService.get()[x].links2.length; y++){
+    						if(lsps_all[i].eroP.indexOf(PathsService.get()[x].links2[y]) >= 0){
+    							found = false;
+    							break;
+    						}            	    						
+	    				}
+    					if(found)
+    						er= PathsService.get()[x].links2.slice().reverse();
+	    			}   
+    			}
+    			         	    				
+    			
+				lsps_all[i].eroS = er;
+				
+				console.log(mapNodeToLinkServices.get());
+    		}
+    		
+    		console.log(lsps_all);
+    		
+    		LSPLinksServices.set(lsps_all);
+    		console.log(LSPLinksServices.get());
+        	$interval(updateExample, 10000);
         	
         	/*
         	
