@@ -410,7 +410,7 @@ SDNControllerApp.controller('MapCtrl', function ($rootScope,$scope, $http, $wind
     			if(lsps_all[i].lspIndex >=	85 && lsps_all[i].lspIndex <= 88){
     				er= PathsService.get()[reIndex].links.slice();
     				c.color = "#228B22";
-    				c.strokeWeight = 2;
+    				c.strokeWeight = 5;
     				c.strokeOpacity = 0.2;
     			}
     				
@@ -418,7 +418,7 @@ SDNControllerApp.controller('MapCtrl', function ($rootScope,$scope, $http, $wind
     				er= PathsService.get()[reIndex].links2.slice().reverse();
     				c.color = "#e2cd81";
     				c.strokeWeight = 12;
-    				c.strokeOpacity = 1;
+    				c.strokeOpacity = 0.8;
     			}
     				
     			
@@ -602,17 +602,38 @@ SDNControllerApp.controller('MapCtrl', function ($rootScope,$scope, $http, $wind
 
 function drawLine(mypath, c, map){
 	
+	var lineSymbol = {
+		    path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+		    scale: 4,
+		    strokeColor: "#000000"
+		  };
+
+	
 	var line = new google.maps.Polyline({
 		    path: mypath,
+		    icons: [{
+		        icon: lineSymbol,
+		        offset: '100%'
+		      }],
 		    strokeColor: c.color,
 		    strokeOpacity: c.strokeOpacity,
 		    strokeWeight: c.strokeWeight,
 		    map: map
 		});
-	
+	animateCircle(line);
 	return line;
 };
 
+function animateCircle(line) {
+    var count = 0;
+    window.setInterval(function() {
+      count = (count + 1) % 200;
+
+      var icons = line.get('icons');
+      icons[0].offset = (count / 2) + '%';
+      line.set('icons', icons);
+  }, 20);
+}
 
 
 var paths = [];
